@@ -1,0 +1,1007 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>ModelForge — Fireworks AI model arena</title>
+<meta name="description" content="Race Fireworks AI models side by side with live streaming telemetry. Bring your own key." />
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%2322d3ee'/%3E%3Cstop offset='1' stop-color='%23d946ef'/%3E%3C/linearGradient%3E%3C/defs%3E%3Cpath d='M32 4 58 19v26L32 60 6 45V19z' fill='none' stroke='url(%23g)' stroke-width='5'/%3E%3Cpath d='M22 40V24l10 9 10-9v16' fill='none' stroke='url(%23g)' stroke-width='5' stroke-linejoin='round'/%3E%3C/svg%3E" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/styles/github-dark.min.css" />
+<script defer src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/dompurify@3.1.6/dist/purify.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/lib/highlight.min.js" onerror="void 0"></script>
+<style>
+:root {
+  --bg: #04050b;
+  --panel: rgba(14, 18, 34, 0.62);
+  --panel-solid: #0c1022;
+  --line: rgba(148, 163, 255, 0.14);
+  --line-strong: rgba(148, 163, 255, 0.28);
+  --text: #e6e9ff;
+  --muted: #8b93b8;
+  --cyan: #22d3ee;
+  --violet: #a855f7;
+  --pink: #f472b6;
+  --lime: #a3e635;
+  --amber: #fbbf24;
+  --red: #f87171;
+  --green: #34d399;
+  --radius: 18px;
+  --mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  --sans: "Space Grotesk", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; min-height: 100%; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--sans);
+  font-size: 15px;
+  line-height: 1.5;
+  overflow-x: hidden;
+}
+/* ---------- background ---------- */
+.bg { position: fixed; inset: 0; z-index: -1; overflow: hidden; pointer-events: none; }
+.bg .orb { position: absolute; border-radius: 50%; filter: blur(90px); opacity: .45; animation: drift 22s ease-in-out infinite alternate; }
+.bg .o1 { width: 560px; height: 560px; background: #0e7490; top: -180px; left: -120px; }
+.bg .o2 { width: 620px; height: 620px; background: #6d28d9; top: 20%; right: -220px; animation-delay: -6s; }
+.bg .o3 { width: 480px; height: 480px; background: #be185d; bottom: -220px; left: 30%; animation-delay: -12s; opacity: .3; }
+@keyframes drift { to { transform: translate(60px, 40px) scale(1.12); } }
+.bg .grid {
+  position: absolute; left: -50%; right: -50%; bottom: -10%; height: 70%;
+  background-image:
+    linear-gradient(rgba(34, 211, 238, .14) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(168, 85, 247, .14) 1px, transparent 1px);
+  background-size: 56px 56px;
+  transform: perspective(600px) rotateX(62deg);
+  transform-origin: bottom;
+  mask-image: linear-gradient(to top, black 10%, transparent 85%);
+  animation: gridmove 6s linear infinite;
+}
+@keyframes gridmove { to { background-position: 0 56px, 0 0; } }
+.bg .scan { position: absolute; inset: 0; background: repeating-linear-gradient(0deg, rgba(255,255,255,.018) 0 1px, transparent 1px 3px); }
+
+/* ---------- layout ---------- */
+.wrap { max-width: 1480px; margin: 0 auto; padding: 22px 26px 80px; }
+header.top { display: flex; align-items: center; gap: 16px; margin-bottom: 22px; flex-wrap: wrap; }
+.brand { display: flex; align-items: center; gap: 12px; margin-right: auto; }
+.brand svg { width: 40px; height: 40px; filter: drop-shadow(0 0 12px rgba(34, 211, 238, .55)); }
+.brand h1 {
+  margin: 0; font-size: 26px; letter-spacing: .02em; font-weight: 700;
+  background: linear-gradient(90deg, var(--cyan), var(--violet) 55%, var(--pink));
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+.brand small { display: block; color: var(--muted); font-family: var(--mono); font-size: 11px; letter-spacing: .18em; text-transform: uppercase; }
+.glass {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  backdrop-filter: blur(18px) saturate(140%);
+  -webkit-backdrop-filter: blur(18px) saturate(140%);
+  box-shadow: 0 10px 40px rgba(0, 0, 0, .35), inset 0 1px 0 rgba(255, 255, 255, .04);
+}
+.pill {
+  display: inline-flex; align-items: center; gap: 8px; padding: 8px 14px; border-radius: 999px;
+  font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); background: rgba(10, 14, 30, .7); color: var(--muted);
+  cursor: pointer; transition: border-color .2s, color .2s;
+}
+.pill:hover { border-color: var(--line-strong); color: var(--text); }
+.dot { width: 8px; height: 8px; border-radius: 50%; background: var(--red); box-shadow: 0 0 10px var(--red); }
+.dot.ok { background: var(--green); box-shadow: 0 0 10px var(--green); }
+.dot.warn { background: var(--amber); box-shadow: 0 0 10px var(--amber); }
+
+button { font: inherit; color: inherit; }
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  padding: 9px 14px; border-radius: 12px; border: 1px solid var(--line); background: rgba(20, 26, 50, .7);
+  cursor: pointer; transition: all .18s; font-size: 13.5px; white-space: nowrap;
+}
+.btn:hover { border-color: var(--line-strong); background: rgba(30, 38, 70, .8); }
+.btn:disabled { opacity: .45; cursor: not-allowed; }
+.btn svg { width: 16px; height: 16px; }
+.btn.primary {
+  border: none; color: #050712; font-weight: 700; letter-spacing: .04em; padding: 12px 22px; font-size: 14.5px;
+  background: linear-gradient(90deg, var(--cyan), var(--violet), var(--pink), var(--violet), var(--cyan));
+  background-size: 200% 100%;
+  box-shadow: 0 0 24px rgba(168, 85, 247, .45), 0 0 4px rgba(34, 211, 238, .6);
+  animation: shimmer 6s linear infinite;
+}
+.btn.primary:hover { box-shadow: 0 0 34px rgba(168, 85, 247, .7), 0 0 8px rgba(34, 211, 238, .8); }
+@keyframes shimmer { to { background-position: 200% 0; } }
+.btn.danger { border-color: rgba(248, 113, 113, .45); color: #fecaca; }
+.btn.ghost { background: transparent; }
+.icon-btn { width: 32px; height: 32px; padding: 0; border-radius: 10px; }
+kbd { font-family: var(--mono); font-size: 11px; padding: 2px 6px; border-radius: 6px; border: 1px solid var(--line-strong); background: rgba(255,255,255,.04); color: var(--muted); }
+
+/* ---------- console ---------- */
+.console { padding: 18px 20px; margin-bottom: 18px; position: relative; overflow: hidden; }
+.console::before {
+  content: ""; position: absolute; inset: 0 0 auto 0; height: 1px;
+  background: linear-gradient(90deg, transparent, var(--cyan), var(--violet), transparent);
+}
+.label { font-family: var(--mono); font-size: 11px; letter-spacing: .16em; text-transform: uppercase; color: var(--muted); display: flex; align-items: center; gap: 8px; }
+textarea, input[type="text"], input[type="password"], input[type="number"], select {
+  width: 100%; background: rgba(4, 6, 16, .65); color: var(--text); border: 1px solid var(--line); border-radius: 12px;
+  padding: 11px 13px; font: inherit; outline: none; transition: border-color .2s, box-shadow .2s;
+}
+textarea:focus, input:focus, select:focus { border-color: rgba(34, 211, 238, .6); box-shadow: 0 0 0 3px rgba(34, 211, 238, .12); }
+textarea { resize: vertical; min-height: 110px; }
+#prompt { font-size: 15.5px; min-height: 120px; }
+.row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+.console-grid { display: grid; grid-template-columns: 1fr 300px; gap: 18px; }
+.params { display: grid; gap: 12px; align-content: start; }
+.param { display: grid; gap: 6px; }
+.param .head { display: flex; justify-content: space-between; font-size: 12.5px; color: var(--muted); }
+.param .head b { font-family: var(--mono); color: var(--cyan); font-weight: 600; }
+input[type="range"] { -webkit-appearance: none; appearance: none; width: 100%; height: 4px; background: linear-gradient(90deg, var(--cyan), var(--violet)); border-radius: 4px; outline: none; }
+input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 16px; height: 16px; border-radius: 50%; background: #fff; box-shadow: 0 0 10px var(--cyan); cursor: pointer; }
+input[type="range"]::-moz-range-thumb { width: 16px; height: 16px; border-radius: 50%; background: #fff; box-shadow: 0 0 10px var(--cyan); cursor: pointer; border: none; }
+details.sys summary { cursor: pointer; list-style: none; margin: 12px 0 8px; }
+details.sys summary::-webkit-details-marker { display: none; }
+details.sys summary .caret { transition: transform .2s; display: inline-block; }
+details.sys[open] summary .caret { transform: rotate(90deg); }
+.chips { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+.chip { font-size: 12.5px; padding: 6px 11px; border-radius: 999px; border: 1px dashed var(--line-strong); color: var(--muted); background: transparent; cursor: pointer; transition: all .15s; }
+.chip:hover { color: var(--text); border-color: var(--cyan); border-style: solid; }
+.toggle { display: inline-flex; align-items: center; gap: 10px; cursor: pointer; font-size: 13px; color: var(--muted); user-select: none; }
+.toggle input { display: none; }
+.toggle .sw { width: 36px; height: 20px; border-radius: 999px; background: rgba(255,255,255,.08); border: 1px solid var(--line-strong); position: relative; transition: background .2s; }
+.toggle .sw::after { content: ""; position: absolute; top: 2px; left: 2px; width: 14px; height: 14px; border-radius: 50%; background: var(--muted); transition: all .2s; }
+.toggle input:checked + .sw { background: rgba(168, 85, 247, .35); border-color: var(--violet); }
+.toggle input:checked + .sw::after { left: 18px; background: #fff; box-shadow: 0 0 8px var(--violet); }
+.actions { display: flex; gap: 10px; align-items: center; margin-top: 14px; flex-wrap: wrap; }
+.actions .spacer { flex: 1; }
+
+/* ---------- lanes ---------- */
+.lanes { display: grid; gap: 16px; grid-template-columns: repeat(var(--cols, 2), minmax(0, 1fr)); }
+.lane { display: flex; flex-direction: column; min-height: 440px; position: relative; overflow: hidden; --accent: var(--cyan); }
+.lane::before { content: ""; position: absolute; inset: 0 0 auto 0; height: 2px; background: linear-gradient(90deg, transparent, var(--accent), transparent); opacity: .8; }
+.lane.running { border-color: color-mix(in srgb, var(--accent) 55%, transparent); box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 25%, transparent), 0 0 40px color-mix(in srgb, var(--accent) 22%, transparent); }
+.lane.winner { border-color: var(--amber); box-shadow: 0 0 0 1px rgba(251, 191, 36, .4), 0 0 46px rgba(251, 191, 36, .25); }
+.lane-head { display: flex; gap: 10px; align-items: center; padding: 14px 14px 10px; }
+.lane-tag {
+  flex: none; width: 32px; height: 32px; border-radius: 10px; display: grid; place-items: center;
+  font-family: var(--mono); font-weight: 700; color: var(--accent);
+  border: 1px solid color-mix(in srgb, var(--accent) 50%, transparent);
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  box-shadow: 0 0 14px color-mix(in srgb, var(--accent) 30%, transparent);
+}
+.model-input { font-family: var(--mono); font-size: 13px; padding: 8px 11px !important; }
+.badges { display: flex; gap: 6px; flex-wrap: wrap; padding: 0 14px; min-height: 0; }
+.badge { font-family: var(--mono); font-size: 10.5px; letter-spacing: .08em; padding: 3px 8px; border-radius: 999px; border: 1px solid; text-transform: uppercase; }
+.badge.speed { color: var(--cyan); border-color: rgba(34, 211, 238, .45); background: rgba(34, 211, 238, .08); }
+.badge.ttft { color: var(--lime); border-color: rgba(163, 230, 53, .45); background: rgba(163, 230, 53, .08); }
+.badge.fast { color: var(--pink); border-color: rgba(244, 114, 182, .45); background: rgba(244, 114, 182, .08); }
+.badge.judge { color: var(--amber); border-color: rgba(251, 191, 36, .5); background: rgba(251, 191, 36, .08); }
+.stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; padding: 10px 14px; }
+.stat { padding: 8px 10px; border-radius: 12px; background: rgba(4, 6, 16, .55); border: 1px solid var(--line); }
+.stat label { display: block; font-family: var(--mono); font-size: 9.5px; letter-spacing: .16em; color: var(--muted); text-transform: uppercase; }
+.stat b { font-family: var(--mono); font-size: 16px; font-weight: 600; color: var(--text); }
+.stat b small { font-size: 11px; color: var(--muted); font-weight: 400; margin-left: 2px; }
+.progress { height: 2px; margin: 0 14px; background: rgba(255,255,255,.05); border-radius: 2px; overflow: hidden; }
+.progress i { display: block; height: 100%; width: 0; background: var(--accent); box-shadow: 0 0 10px var(--accent); transition: width .2s; }
+.lane.running .progress i { width: 35% !important; animation: sweep 1.1s ease-in-out infinite; }
+@keyframes sweep { from { transform: translateX(-100%); } to { transform: translateX(300%); } }
+.lane-body { flex: 1; padding: 12px 16px; overflow: auto; max-height: 62vh; }
+details.reasoning { margin-bottom: 10px; border: 1px solid var(--line); border-radius: 12px; background: rgba(4, 6, 16, .45); }
+details.reasoning summary { cursor: pointer; padding: 8px 12px; font-family: var(--mono); font-size: 11.5px; color: var(--muted); letter-spacing: .08em; }
+details.reasoning .reasoning-body { padding: 0 12px 10px; color: #a5adcf; font-size: 13px; white-space: pre-wrap; max-height: 260px; overflow: auto; }
+.placeholder { color: var(--muted); font-family: var(--mono); font-size: 12.5px; opacity: .7; display: flex; align-items: center; gap: 10px; height: 100%; min-height: 160px; justify-content: center; text-align: center; }
+.err { color: #fecaca; background: rgba(248, 113, 113, .08); border: 1px solid rgba(248, 113, 113, .35); padding: 10px 12px; border-radius: 12px; font-family: var(--mono); font-size: 12.5px; white-space: pre-wrap; word-break: break-word; }
+.cursor { display: inline-block; width: 8px; height: 1.05em; vertical-align: text-bottom; background: var(--accent); box-shadow: 0 0 8px var(--accent); animation: blink 1s steps(1) infinite; margin-left: 2px; }
+@keyframes blink { 50% { opacity: 0; } }
+.lane-foot { display: flex; align-items: center; gap: 8px; padding: 10px 14px; border-top: 1px solid var(--line); }
+.status { font-family: var(--mono); font-size: 11px; color: var(--muted); letter-spacing: .1em; text-transform: uppercase; margin-right: auto; display: flex; align-items: center; gap: 8px; }
+.status .dot { width: 6px; height: 6px; background: var(--muted); box-shadow: none; }
+.lane.running .status .dot { background: var(--accent); box-shadow: 0 0 8px var(--accent); animation: blink .8s steps(1) infinite; }
+.lane.done .status .dot { background: var(--green); box-shadow: 0 0 8px var(--green); }
+.lane.error .status .dot { background: var(--red); box-shadow: 0 0 8px var(--red); }
+.vote.active { color: #1a1205; background: var(--amber); border-color: var(--amber); font-weight: 700; }
+.add-lane {
+  min-height: 440px; border: 1px dashed var(--line-strong); border-radius: var(--radius); background: rgba(10, 14, 30, .3);
+  display: grid; place-items: center; cursor: pointer; color: var(--muted); font-family: var(--mono); font-size: 13px; transition: all .2s;
+}
+.add-lane:hover { color: var(--text); border-color: var(--cyan); background: rgba(34, 211, 238, .05); }
+.add-lane span { font-size: 34px; display: block; text-align: center; line-height: 1; margin-bottom: 8px; color: var(--cyan); }
+
+/* markdown */
+.md { font-size: 14.5px; word-wrap: break-word; }
+.md > :first-child { margin-top: 0; }
+.md h1, .md h2, .md h3 { line-height: 1.25; margin: 1.1em 0 .5em; }
+.md h1 { font-size: 1.35em; } .md h2 { font-size: 1.2em; } .md h3 { font-size: 1.07em; }
+.md p { margin: .6em 0; }
+.md a { color: var(--cyan); }
+.md code { font-family: var(--mono); font-size: .88em; background: rgba(148, 163, 255, .12); padding: .12em .38em; border-radius: 6px; }
+.md pre { position: relative; background: #070a17 !important; border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; overflow: auto; }
+.md pre code { background: none; padding: 0; font-size: 12.5px; }
+.md pre .copy-code { position: absolute; top: 6px; right: 6px; font-size: 11px; padding: 3px 8px; border-radius: 8px; opacity: 0; transition: opacity .15s; }
+.md pre:hover .copy-code { opacity: 1; }
+.md blockquote { margin: .6em 0; padding: .2em 1em; border-left: 3px solid var(--violet); color: #b7bde0; }
+.md table { border-collapse: collapse; width: 100%; font-size: 13px; }
+.md th, .md td { border: 1px solid var(--line); padding: 6px 9px; text-align: left; }
+.md th { background: rgba(148, 163, 255, .08); }
+.md ul, .md ol { padding-left: 1.4em; }
+.md hr { border: none; border-top: 1px solid var(--line); }
+
+/* ---------- telemetry & judge ---------- */
+.section-title { display: flex; align-items: center; gap: 10px; margin: 26px 0 12px; }
+.section-title h2 { margin: 0; font-size: 15px; letter-spacing: .14em; text-transform: uppercase; font-family: var(--mono); font-weight: 600; color: #c7cdf5; }
+.section-title .line { flex: 1; height: 1px; background: linear-gradient(90deg, var(--line-strong), transparent); }
+.telemetry { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+.metric-card { padding: 16px 18px; }
+.metric-card h3 { margin: 0 0 12px; font-family: var(--mono); font-size: 11.5px; letter-spacing: .16em; text-transform: uppercase; color: var(--muted); font-weight: 600; display: flex; justify-content: space-between; }
+.bar-row { display: grid; grid-template-columns: 22px 1fr 78px; gap: 10px; align-items: center; margin: 9px 0; font-family: var(--mono); font-size: 12px; }
+.bar-row .t { color: var(--c); font-weight: 700; }
+.bar-row .track { height: 10px; border-radius: 6px; background: rgba(255,255,255,.05); overflow: hidden; }
+.bar-row .fill { height: 100%; border-radius: 6px; background: linear-gradient(90deg, color-mix(in srgb, var(--c) 40%, transparent), var(--c)); box-shadow: 0 0 12px color-mix(in srgb, var(--c) 60%, transparent); width: 0; transition: width .8s cubic-bezier(.2, .8, .2, 1); }
+.bar-row .v { text-align: right; color: var(--text); }
+.bar-row.best .v::before { content: "★ "; color: var(--amber); }
+.judge-panel { padding: 18px 20px; }
+.judge-panel .verdict { font-size: 15px; margin: 6px 0 14px; }
+.score-grid { display: grid; gap: 10px; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
+.score { padding: 12px 14px; border-radius: 14px; border: 1px solid var(--line); background: rgba(4, 6, 16, .5); }
+.score .top { display: flex; justify-content: space-between; align-items: baseline; font-family: var(--mono); }
+.score .top b { font-size: 22px; color: var(--c); }
+.score p { margin: 6px 0 0; color: #b7bde0; font-size: 13px; }
+
+/* ---------- drawers & modal ---------- */
+.overlay { position: fixed; inset: 0; background: rgba(2, 3, 8, .6); backdrop-filter: blur(4px); z-index: 40; opacity: 0; pointer-events: none; transition: opacity .2s; }
+.overlay.show { opacity: 1; pointer-events: auto; }
+.drawer { position: fixed; top: 0; right: 0; bottom: 0; width: min(480px, 94vw); z-index: 50; transform: translateX(105%); transition: transform .28s cubic-bezier(.2, .8, .2, 1); display: flex; flex-direction: column; border-radius: 22px 0 0 22px; background: rgba(9, 12, 26, .92); }
+.drawer.show { transform: none; }
+.drawer header { display: flex; align-items: center; gap: 10px; padding: 18px 20px; border-bottom: 1px solid var(--line); }
+.drawer header h2 { margin: 0 auto 0 0; font-size: 15px; letter-spacing: .14em; text-transform: uppercase; font-family: var(--mono); }
+.drawer .body { flex: 1; overflow: auto; padding: 14px 18px; }
+.hist-item { padding: 12px 14px; border-radius: 14px; border: 1px solid var(--line); background: rgba(4, 6, 16, .45); margin-bottom: 10px; cursor: pointer; transition: border-color .15s; }
+.hist-item:hover { border-color: var(--cyan); }
+.hist-item .p { font-size: 13.5px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.hist-item .m { font-family: var(--mono); font-size: 11px; color: var(--muted); margin-top: 6px; display: flex; gap: 8px; flex-wrap: wrap; }
+.lb-table { width: 100%; border-collapse: collapse; font-family: var(--mono); font-size: 12px; }
+.lb-table th { text-align: left; color: var(--muted); font-weight: 400; font-size: 10.5px; letter-spacing: .12em; text-transform: uppercase; padding: 8px 6px; border-bottom: 1px solid var(--line); }
+.lb-table td { padding: 10px 6px; border-bottom: 1px solid var(--line); }
+.lb-table td.n { text-align: right; }
+.lb-table tr:first-child td:first-child + td { color: var(--amber); }
+.empty { color: var(--muted); text-align: center; padding: 40px 10px; font-family: var(--mono); font-size: 12.5px; }
+.modal { position: fixed; z-index: 60; top: 50%; left: 50%; transform: translate(-50%, -46%) scale(.97); opacity: 0; pointer-events: none; transition: all .22s; width: min(520px, 92vw); padding: 24px; background: rgba(10, 13, 28, .95); }
+.modal.show { opacity: 1; pointer-events: auto; transform: translate(-50%, -50%); }
+.modal h2 { margin: 0 0 6px; font-size: 20px; }
+.modal p { color: var(--muted); margin: 0 0 16px; font-size: 13.5px; }
+.modal .msg { font-family: var(--mono); font-size: 12px; min-height: 18px; margin-top: 10px; }
+.modal .msg.bad { color: var(--red); } .modal .msg.good { color: var(--green); }
+.toast-wrap { position: fixed; bottom: 22px; left: 50%; transform: translateX(-50%); z-index: 80; display: grid; gap: 8px; }
+.toast { padding: 10px 16px; border-radius: 12px; font-size: 13px; background: rgba(12, 16, 34, .95); border: 1px solid var(--line-strong); box-shadow: 0 10px 30px rgba(0,0,0,.5); animation: toastin .25s ease; }
+@keyframes toastin { from { opacity: 0; transform: translateY(8px); } }
+.muted { color: var(--muted); }
+.mono { font-family: var(--mono); }
+footer.foot { margin-top: 40px; text-align: center; color: var(--muted); font-size: 12px; font-family: var(--mono); }
+footer.foot a { color: var(--cyan); text-decoration: none; }
+[hidden] { display: none !important; }
+
+@media (max-width: 1100px) { .console-grid { grid-template-columns: 1fr; } .telemetry { grid-template-columns: 1fr; } }
+@media (max-width: 900px) { .lanes { grid-template-columns: 1fr !important; } .stats { grid-template-columns: repeat(2, 1fr); } }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
+</style>
+</head>
+<body>
+<div class="bg"><div class="orb o1"></div><div class="orb o2"></div><div class="orb o3"></div><div class="grid"></div><div class="scan"></div></div>
+
+<div class="wrap">
+  <header class="top">
+    <div class="brand">
+      <svg viewBox="0 0 64 64" aria-hidden="true"><defs><linearGradient id="lg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#22d3ee"/><stop offset=".55" stop-color="#a855f7"/><stop offset="1" stop-color="#f472b6"/></linearGradient></defs><path d="M32 4 58 19v26L32 60 6 45V19z" fill="none" stroke="url(#lg)" stroke-width="4"/><path d="M22 40V24l10 9 10-9v16" fill="none" stroke="url(#lg)" stroke-width="4" stroke-linejoin="round" stroke-linecap="round"/></svg>
+      <div><h1>ModelForge</h1><small>Fireworks AI · model arena</small></div>
+    </div>
+    <button class="pill" id="keyPill" title="Fireworks API key"><span class="dot" id="keyDot"></span><span id="keyText">No API key</span></button>
+    <button class="btn" id="openLeaderboard" title="Leaderboard">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0V4zM17 5h3v2a3 3 0 0 1-3 3M7 5H4v2a3 3 0 0 0 3 3"/></svg>Leaderboard</button>
+    <button class="btn" id="openHistory" title="History">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5M12 7v5l3 2"/></svg>History</button>
+  </header>
+
+  <section class="console glass">
+    <div class="console-grid">
+      <div>
+        <div class="label"><span style="color:var(--cyan)">▍</span>Prompt</div>
+        <textarea id="prompt" placeholder="Transmit one prompt to every model…" style="margin-top:8px"></textarea>
+        <div class="chips" id="presets"></div>
+        <details class="sys" id="sysDetails">
+          <summary class="label"><span class="caret">▸</span>System prompt <span id="sysBadge" class="muted" style="letter-spacing:0;text-transform:none"></span></summary>
+          <textarea id="system" placeholder="Optional. Applied to every model." style="min-height:70px"></textarea>
+        </details>
+      </div>
+      <div class="params">
+        <div class="label"><span style="color:var(--violet)">▍</span>Parameters</div>
+        <div class="param"><div class="head"><span>Temperature</span><b id="tempVal">0.7</b></div><input type="range" id="temperature" min="0" max="2" step="0.05" value="0.7" /></div>
+        <div class="param"><div class="head"><span>Top P</span><b id="topPVal">1.00</b></div><input type="range" id="topP" min="0.05" max="1" step="0.05" value="1" /></div>
+        <div class="param"><div class="head"><span>Max tokens</span><b id="maxTokVal">1024</b></div><input type="range" id="maxTokens" min="64" max="8192" step="64" value="1024" /></div>
+        <label class="toggle"><input type="checkbox" id="judgeOn" /><span class="sw"></span>AI judge</label>
+        <input type="text" class="model-input" id="judgeModel" list="modelList" placeholder="Judge model" spellcheck="false" hidden />
+      </div>
+    </div>
+    <div class="actions">
+      <button class="btn primary" id="runBtn">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M13 2 3 14h8l-1 8 10-12h-8z"/></svg>IGNITE</button>
+      <button class="btn danger" id="stopBtn" hidden>■ Stop</button>
+      <span class="muted mono" style="font-size:12px"><kbd>Ctrl</kbd> + <kbd>Enter</kbd></span>
+      <span class="spacer"></span>
+      <button class="btn ghost" id="exportMd" disabled>Export .md</button>
+      <button class="btn ghost" id="exportJson" disabled>Export .json</button>
+      <button class="btn ghost" id="clearBtn">Clear</button>
+    </div>
+  </section>
+
+  <section class="lanes" id="lanes"></section>
+
+  <div id="telemetryWrap" hidden>
+    <div class="section-title"><h2>Telemetry</h2><div class="line"></div></div>
+    <div class="telemetry">
+      <div class="metric-card glass"><h3><span>Time to first token</span><span>lower = better</span></h3><div id="chartTtft"></div></div>
+      <div class="metric-card glass"><h3><span>Total time</span><span>lower = better</span></h3><div id="chartTotal"></div></div>
+      <div class="metric-card glass"><h3><span>Throughput</span><span>tok/s · higher = better</span></h3><div id="chartTps"></div></div>
+    </div>
+  </div>
+
+  <div id="judgeWrap" hidden>
+    <div class="section-title"><h2>Judge verdict</h2><div class="line"></div></div>
+    <div class="judge-panel glass" id="judgePanel"></div>
+  </div>
+
+  <footer class="foot">Runs entirely in your browser · your key goes only to <a href="https://fireworks.ai" target="_blank" rel="noopener">api.fireworks.ai</a> · <a href="https://github.com/twaskat/modelforge" target="_blank" rel="noopener">source</a></footer>
+</div>
+
+<datalist id="modelList"></datalist>
+
+<div class="overlay" id="overlay"></div>
+
+<aside class="drawer glass" id="historyDrawer">
+  <header><h2>History</h2><button class="btn ghost" id="clearHistory">Clear all</button><button class="btn icon-btn" data-close>✕</button></header>
+  <div class="body" id="historyList"></div>
+</aside>
+
+<aside class="drawer glass" id="leaderDrawer">
+  <header><h2>Leaderboard</h2><button class="btn ghost" id="resetStats">Reset</button><button class="btn icon-btn" data-close>✕</button></header>
+  <div class="body" id="leaderBody"></div>
+</aside>
+
+<div class="modal glass" id="keyModal" role="dialog" aria-modal="true" aria-labelledby="keyTitle">
+  <h2 id="keyTitle">Connect to Fireworks</h2>
+  <p>Paste your Fireworks AI API key. It's sent only to api.fireworks.ai, straight from your browser. Get one at <a href="https://fireworks.ai/account/api-keys" target="_blank" rel="noopener" style="color:var(--cyan)">fireworks.ai/account/api-keys</a>.</p>
+  <input type="password" id="keyInput" placeholder="fw_…" autocomplete="off" spellcheck="false" />
+  <div class="row" style="margin-top:12px;justify-content:space-between">
+    <label class="toggle"><input type="checkbox" id="rememberKey" checked /><span class="sw"></span>Remember on this device</label>
+    <div class="row">
+      <button class="btn ghost" id="forgetKey">Forget</button>
+      <button class="btn primary" id="saveKey" style="padding:10px 18px">Connect</button>
+    </div>
+  </div>
+  <div class="msg" id="keyMsg"></div>
+</div>
+
+<div class="toast-wrap" id="toasts"></div>
+
+<script>
+(() => {
+  "use strict";
+
+  const API = "https://api.fireworks.ai/inference/v1";
+  const PREFIX = "accounts/fireworks/models/";
+  const ACCENTS = ["#22d3ee", "#a855f7", "#f472b6", "#a3e635"];
+  const MAX_LANES = 4;
+  const FALLBACK_MODELS = [
+    "gpt-oss-120b", "gpt-oss-20b", "deepseek-v3p1", "kimi-k2-instruct-0905",
+    "qwen3-235b-a22b-instruct-2507", "llama-v3p3-70b-instruct",
+  ];
+  const NON_CHAT = /(embed|rerank|whisper|flux|sdxl|stable-diffusion|playground-v|japanese-stable|ssd-1b|segmind|image|tts|asr|vision-embed)/i;
+  const PRESETS = [
+    ["Explain like I'm 10", "Explain quantum entanglement to a curious 10-year-old in under 150 words."],
+    ["Code", "Write a Python function that merges overlapping intervals. Include type hints, a docstring, and three pytest tests."],
+    ["Reasoning", "A bat and a ball cost $1.10 in total. The bat costs $1.00 more than the ball. How much does the ball cost? Show your reasoning briefly."],
+    ["Creative", "Write a 6-line poem about a city that runs on starlight."],
+    ["Structured", "Return a JSON array of 3 fictional sci-fi gadgets, each with name, purpose, and power_source fields. JSON only."],
+  ];
+  const LS = {
+    key: "mf_key", lanes: "mf_lanes", params: "mf_params", history: "mf_history", stats: "mf_stats", judge: "mf_judge",
+  };
+
+  const $ = (s, el = document) => el.querySelector(s);
+  const store = {
+    get(k, d) { try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch { return d; } },
+    set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} },
+  };
+  const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  const fullId = (m) => (m.includes("/") ? m : PREFIX + m);
+  const shortId = (m) => (m.startsWith(PREFIX) ? m.slice(PREFIX.length) : m);
+  const letter = (i) => String.fromCharCode(65 + i);
+  const fmtS = (ms) => (ms == null ? "—" : (ms / 1000).toFixed(ms < 10000 ? 2 : 1));
+
+  // ---------- state ----------
+  const state = {
+    key: store.get(LS.key, "") || sessionStorage.getItem(LS.key) || "",
+    models: FALLBACK_MODELS.slice(),
+    modelsLoaded: false,
+    lanes: [],
+    run: null,
+    running: false,
+  };
+
+  // ---------- toasts ----------
+  function toast(msg) {
+    const t = document.createElement("div");
+    t.className = "toast"; t.textContent = msg;
+    $("#toasts").appendChild(t);
+    setTimeout(() => t.remove(), 2600);
+  }
+
+  // ---------- markdown ----------
+  function renderMd(text) {
+    if (window.marked && window.DOMPurify) {
+      return DOMPurify.sanitize(marked.parse(text, { breaks: false, gfm: true }));
+    }
+    return `<pre style="white-space:pre-wrap">${esc(text)}</pre>`;
+  }
+  function enhanceCode(el) {
+    el.querySelectorAll("pre code").forEach((c) => {
+      if (window.hljs) { try { hljs.highlightElement(c); } catch {} }
+      const pre = c.parentElement;
+      if (pre.querySelector(".copy-code")) return;
+      const b = document.createElement("button");
+      b.className = "btn copy-code"; b.textContent = "copy";
+      b.onclick = () => { navigator.clipboard.writeText(c.innerText); b.textContent = "copied"; setTimeout(() => (b.textContent = "copy"), 1200); };
+      pre.appendChild(b);
+    });
+  }
+  function splitThink(text) {
+    const t = text.replace(/^\s+/, "");
+    if (!t.startsWith("<think>")) return { reasoning: "", content: text };
+    const end = t.indexOf("</think>");
+    if (end === -1) return { reasoning: t.slice(7), content: "" };
+    return { reasoning: t.slice(7, end), content: t.slice(end + 8).replace(/^\s+/, "") };
+  }
+
+  // ---------- key & models ----------
+  function updateKeyPill() {
+    const dot = $("#keyDot"), txt = $("#keyText");
+    if (!state.key) { dot.className = "dot"; txt.textContent = "No API key"; return; }
+    dot.className = state.modelsLoaded ? "dot ok" : "dot warn";
+    txt.textContent = state.modelsLoaded ? `Connected · ${state.models.length} models` : `Key ••••${state.key.slice(-4)}`;
+  }
+  function fillModelList() {
+    $("#modelList").innerHTML = state.models.map((m) => `<option value="${esc(m)}"></option>`).join("");
+  }
+  async function loadModels(key) {
+    const res = await fetch(`${API}/models`, { headers: { Authorization: `Bearer ${key}` } });
+    if (!res.ok) {
+      let msg = `HTTP ${res.status}`;
+      try { const j = await res.json(); msg = j.error?.message || j.message || msg; } catch {}
+      throw new Error(msg);
+    }
+    const j = await res.json();
+    const ids = (j.data || []).map((m) => m.id).filter((id) => id && !NON_CHAT.test(id)).map(shortId);
+    return [...new Set(ids)].sort();
+  }
+  async function connect(key, remember) {
+    const msg = $("#keyMsg");
+    msg.className = "msg"; msg.textContent = "Handshaking with api.fireworks.ai…";
+    try {
+      const models = await loadModels(key);
+      state.key = key;
+      if (models.length) { state.models = models; state.modelsLoaded = true; }
+      if (remember) { store.set(LS.key, key); sessionStorage.removeItem(LS.key); }
+      else { localStorage.removeItem(LS.key); sessionStorage.setItem(LS.key, key); }
+      fillModelList(); updateKeyPill();
+      msg.className = "msg good"; msg.textContent = `Connected — ${models.length} chat models available.`;
+      setTimeout(closeAll, 600);
+      toast("Fireworks link established");
+    } catch (e) {
+      msg.className = "msg bad"; msg.textContent = `Couldn't connect: ${e.message}`;
+    }
+  }
+
+  // ---------- lanes ----------
+  function laneTemplate(lane, i) {
+    const el = document.createElement("article");
+    el.className = "lane glass";
+    el.style.setProperty("--accent", ACCENTS[i % ACCENTS.length]);
+    el.innerHTML = `
+      <div class="lane-head">
+        <span class="lane-tag">${letter(i)}</span>
+        <input type="text" class="model-input" list="modelList" spellcheck="false" placeholder="model id" aria-label="Model ${letter(i)}" />
+        <button class="btn icon-btn retry" title="Re-run this lane">↻</button>
+        <button class="btn icon-btn remove" title="Remove lane">✕</button>
+      </div>
+      <div class="badges"></div>
+      <div class="stats">
+        <div class="stat"><label>TTFT</label><b data-k="ttft">—</b></div>
+        <div class="stat"><label>Total</label><b data-k="total">—</b></div>
+        <div class="stat"><label>Tokens</label><b data-k="tokens">—</b></div>
+        <div class="stat"><label>Tok/s</label><b data-k="tps">—</b></div>
+      </div>
+      <div class="progress"><i></i></div>
+      <div class="lane-body">
+        <details class="reasoning" hidden><summary>REASONING</summary><div class="reasoning-body"></div></details>
+        <div class="output md"><div class="placeholder">◇ standing by</div></div>
+      </div>
+      <div class="lane-foot">
+        <span class="status"><span class="dot"></span><span class="status-text">idle</span></span>
+        <button class="btn copy" disabled>Copy</button>
+        <button class="btn vote" disabled>♛ Winner</button>
+      </div>`;
+    const input = $(".model-input", el);
+    input.value = lane.model; input.title = lane.model;
+    input.addEventListener("change", () => { lane.model = input.title = input.value.trim(); saveLanes(); });
+    input.addEventListener("focus", () => input.select());
+    $(".remove", el).onclick = () => removeLane(lane);
+    $(".retry", el).onclick = () => runLanes([lane], true);
+    $(".copy", el).onclick = () => { navigator.clipboard.writeText(lane.text); toast(`Copied ${letter(i)}`); };
+    $(".vote", el).onclick = () => vote(lane);
+    lane.el = el;
+    return el;
+  }
+  function renderLanes() {
+    const wrap = $("#lanes");
+    wrap.innerHTML = "";
+    state.lanes.forEach((lane, i) => { wrap.appendChild(laneTemplate(lane, i)); paintLane(lane, true); });
+    if (state.lanes.length < MAX_LANES) {
+      const add = document.createElement("button");
+      add.className = "add-lane"; add.innerHTML = `<div><span>+</span>add model</div>`;
+      add.onclick = addLane;
+      wrap.appendChild(add);
+    }
+    const cols = Math.min(state.lanes.length + (state.lanes.length < MAX_LANES ? 1 : 0), 4);
+    wrap.style.setProperty("--cols", Math.max(cols, 2));
+    state.lanes.forEach((l) => ($(".remove", l.el).disabled = state.lanes.length <= 2 || state.running));
+  }
+  function newLane(model) {
+    return { model, text: "", raw: "", reasoning: "", status: "idle", ttft: null, total: null, tokens: null, approx: false, error: "", start: 0, ctrl: null, el: null };
+  }
+  function resetLane(l) {
+    Object.assign(l, { text: "", raw: "", reasoning: "", status: "idle", ttft: null, total: null, tokens: null, approx: false, error: "" });
+  }
+  function addLane() {
+    if (state.lanes.length >= MAX_LANES || state.running) return;
+    const used = new Set(state.lanes.map((l) => l.model));
+    const next = state.models.find((m) => !used.has(m)) || state.models[0] || "";
+    state.lanes.push(newLane(next));
+    saveLanes(); renderLanes();
+  }
+  function removeLane(lane) {
+    if (state.lanes.length <= 2 || state.running) return;
+    state.lanes = state.lanes.filter((l) => l !== lane);
+    saveLanes(); renderLanes();
+  }
+  function saveLanes() { store.set(LS.lanes, state.lanes.map((l) => l.model)); }
+
+  function tps(l) {
+    if (!l.tokens || l.total == null) return null;
+    const gen = (l.total - (l.ttft || 0)) / 1000;
+    return gen > 0.05 ? l.tokens / gen : l.tokens / (l.total / 1000);
+  }
+  function paintLane(l, full) {
+    const el = l.el; if (!el) return;
+    el.classList.toggle("running", l.status === "running");
+    el.classList.toggle("done", l.status === "done");
+    el.classList.toggle("error", l.status === "error");
+    const won = !!state.run && state.run.winner === state.lanes.indexOf(l) && l.status === "done";
+    el.classList.toggle("winner", won);
+    $(".vote", el).classList.toggle("active", won);
+    $(".vote", el).textContent = won ? "♛ Winner" : "♛ Pick";
+    $('[data-k="ttft"]', el).innerHTML = l.ttft == null ? "—" : `${fmtS(l.ttft)}<small>s</small>`;
+    const total = l.status === "running" ? performance.now() - l.start : l.total;
+    $('[data-k="total"]', el).innerHTML = total == null ? "—" : `${fmtS(total)}<small>s</small>`;
+    $('[data-k="tokens"]', el).textContent = l.tokens == null ? "—" : (l.approx ? "~" : "") + l.tokens;
+    const t = l.status === "running" ? null : tps(l);
+    $('[data-k="tps"]', el).textContent = t == null ? "—" : t.toFixed(t < 100 ? 1 : 0);
+    const st = { idle: "idle", running: "streaming", done: "complete", error: "fault", stopped: "halted" }[l.status] || l.status;
+    $(".status-text", el).textContent = st;
+    if (!full && l.status !== "running") full = true;
+    const out = $(".output", el);
+    const rDet = $(".reasoning", el);
+    if (l.reasoning) { rDet.hidden = false; $(".reasoning-body", el).textContent = l.reasoning; $("summary", rDet).textContent = `REASONING · ${l.reasoning.length.toLocaleString()} chars`; }
+    else rDet.hidden = true;
+    if (l.error) out.innerHTML = `<div class="err">${esc(l.error)}</div>` + (l.text ? renderMd(l.text) : "");
+    else if (!l.text && l.status === "running") out.innerHTML = `<div class="placeholder">${l.reasoning ? "◇ reasoning…" : "◇ awaiting first token…"}<span class="cursor"></span></div>`;
+    else if (!l.text) out.innerHTML = `<div class="placeholder">${l.status === "done" ? "◇ empty response" : "◇ standing by"}</div>`;
+    else {
+      out.innerHTML = renderMd(l.text) + (l.status === "running" ? '<span class="cursor"></span>' : "");
+      if (l.status !== "running") enhanceCode(out);
+    }
+    $(".copy", el).disabled = !l.text;
+    $(".vote", el).disabled = !(l.status === "done" && l.text && state.run && !state.running);
+    $(".retry", el).disabled = state.running || !state.key;
+    $(".model-input", el).disabled = state.running;
+    if (l.status === "running") { const b = $(".lane-body", el); if (b.scrollHeight - b.scrollTop - b.clientHeight < 120) b.scrollTop = b.scrollHeight; }
+  }
+  function paintVotes() { state.lanes.forEach((l) => paintLane(l, true)); }
+
+  // ---------- streaming ----------
+  async function streamLane(l, messages, params) {
+    resetLane(l);
+    l.status = "running"; l.start = performance.now();
+    l.ctrl = new AbortController();
+    let chunks = 0, scheduled = false;
+    const schedule = () => { if (scheduled) return; scheduled = true; requestAnimationFrame(() => { scheduled = false; paintLane(l); }); };
+    const ticker = setInterval(() => paintLane(l), 120);
+    paintLane(l);
+    try {
+      const res = await fetch(`${API}/chat/completions`, {
+        method: "POST",
+        signal: l.ctrl.signal,
+        headers: { Authorization: `Bearer ${state.key}`, "Content-Type": "application/json", Accept: "text/event-stream" },
+        body: JSON.stringify({ model: fullId(l.model), messages, stream: true, ...params }),
+      });
+      if (!res.ok) {
+        let msg = `HTTP ${res.status}`;
+        try { const j = await res.json(); msg += ` — ${j.error?.message || j.message || JSON.stringify(j)}`; } catch {}
+        throw new Error(msg);
+      }
+      const reader = res.body.getReader();
+      const dec = new TextDecoder();
+      let buf = "", usage = null;
+      for (;;) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buf += dec.decode(value, { stream: true });
+        let nl;
+        while ((nl = buf.indexOf("\n")) >= 0) {
+          const line = buf.slice(0, nl).trim(); buf = buf.slice(nl + 1);
+          if (!line.startsWith("data:")) continue;
+          const data = line.slice(5).trim();
+          if (!data || data === "[DONE]") continue;
+          let j; try { j = JSON.parse(data); } catch { continue; }
+          if (j.error) throw new Error(j.error.message || JSON.stringify(j.error));
+          if (j.usage) usage = j.usage;
+          const d = j.choices?.[0]?.delta || {};
+          const rc = d.reasoning_content || d.reasoning || "";
+          const c = d.content || "";
+          if (rc || c) {
+            if (l.ttft == null) l.ttft = performance.now() - l.start;
+            chunks++;
+            l.raw += c;
+            const s = splitThink(l.raw);
+            l.text = s.content;
+            l.reasoning = (l.reasoningDirect = (l.reasoningDirect || "") + rc) + s.reasoning;
+            l.tokens = chunks; l.approx = true;
+            schedule();
+          }
+        }
+      }
+      l.total = performance.now() - l.start;
+      if (usage?.completion_tokens) { l.tokens = usage.completion_tokens; l.approx = false; }
+      l.status = "done";
+    } catch (e) {
+      l.total = performance.now() - l.start;
+      if (e.name === "AbortError") { l.status = "stopped"; l.error = "Stopped by user."; }
+      else { l.status = "error"; l.error = e.message || String(e); }
+    } finally {
+      clearInterval(ticker);
+      l.reasoningDirect = "";
+      l.ctrl = null;
+      paintLane(l, true);
+    }
+  }
+
+  function getParams() {
+    return {
+      temperature: +$("#temperature").value,
+      top_p: +$("#topP").value,
+      max_tokens: +$("#maxTokens").value,
+    };
+  }
+  function buildMessages(prompt, system) {
+    const m = [];
+    if (system.trim()) m.push({ role: "system", content: system.trim() });
+    m.push({ role: "user", content: prompt });
+    return m;
+  }
+
+  function setRunning(on) {
+    state.running = on;
+    $("#runBtn").disabled = on;
+    $("#stopBtn").hidden = !on;
+    $("#exportMd").disabled = $("#exportJson").disabled = on || !state.run;
+    renderLanesControls();
+  }
+  function renderLanesControls() {
+    state.lanes.forEach((l) => { $(".remove", l.el).disabled = state.lanes.length <= 2 || state.running; paintLane(l, true); });
+    const add = $(".add-lane"); if (add) add.disabled = state.running;
+  }
+
+  async function runLanes(targets, single = false) {
+    if (state.running) return;
+    if (!state.key) { openKey(); return; }
+    const prompt = $("#prompt").value;
+    if (!prompt.trim()) { toast("Enter a prompt first"); $("#prompt").focus(); return; }
+    for (const l of targets) { l.model = $(".model-input", l.el).value.trim(); if (!l.model) { toast("Every lane needs a model"); return; } }
+    saveLanes();
+    const system = $("#system").value, params = getParams();
+    if (!single || !state.run || state.run.prompt !== prompt) {
+      state.run = { id: Date.now(), ts: new Date().toISOString(), prompt, system, params, lanes: [], winner: null, judge: null };
+      targets = state.lanes;
+      if (single) toast("Prompt changed — running all lanes");
+    }
+    $("#judgeWrap").hidden = true;
+    setRunning(true);
+    const messages = buildMessages(prompt, system);
+    await Promise.all(targets.map((l) => streamLane(l, messages, params)));
+    state.run.lanes = state.lanes.map(snapshotLane);
+    state.run.params = params;
+    setRunning(false);
+    updateBadges(); renderTelemetry(); paintVotes();
+    recordStats(targets);
+    saveRun();
+    if ($("#judgeOn").checked && state.lanes.filter((l) => l.status === "done" && l.text).length >= 2) runJudge();
+  }
+  function snapshotLane(l) {
+    return { model: l.model, text: l.text, reasoning: l.reasoning, ttft: l.ttft, total: l.total, tokens: l.tokens, approx: l.approx, error: l.error, status: l.status };
+  }
+  function stopAll() { state.lanes.forEach((l) => l.ctrl && l.ctrl.abort()); if (state.judgeCtrl) state.judgeCtrl.abort(); }
+
+  // ---------- badges & telemetry ----------
+  function bestIdx(fn, lower) {
+    let best = -1, bv = null;
+    state.lanes.forEach((l, i) => {
+      if (l.status !== "done") return;
+      const v = fn(l); if (v == null) return;
+      if (bv == null || (lower ? v < bv : v > bv)) { bv = v; best = i; }
+    });
+    return best;
+  }
+  function updateBadges(judgeWinner) {
+    const bT = bestIdx((l) => l.ttft, true), bS = bestIdx(tps, false), bF = bestIdx((l) => l.total, true);
+    const ok = state.lanes.filter((l) => l.status === "done").length >= 2;
+    state.lanes.forEach((l, i) => {
+      const b = [];
+      if (ok && i === bT) b.push('<span class="badge ttft">⚡ first token</span>');
+      if (ok && i === bS) b.push('<span class="badge speed">▲ top speed</span>');
+      if (ok && i === bF) b.push('<span class="badge fast">◆ finished first</span>');
+      if (judgeWinner === i) b.push('<span class="badge judge">⚖ judge pick</span>');
+      $(".badges", l.el).innerHTML = b.join("");
+    });
+  }
+  function bars(el, fn, fmt, lower) {
+    const vals = state.lanes.map((l) => (l.status === "done" ? fn(l) : null));
+    const max = Math.max(...vals.filter((v) => v != null), 0.0001);
+    const best = bestIdx(fn, lower);
+    el.innerHTML = state.lanes.map((l, i) => `
+      <div class="bar-row ${i === best ? "best" : ""}" style="--c:${ACCENTS[i % 4]}" title="${esc(l.model)}">
+        <span class="t">${letter(i)}</span>
+        <div class="track"><div class="fill" data-w="${vals[i] == null ? 0 : (vals[i] / max) * 100}"></div></div>
+        <span class="v">${vals[i] == null ? "—" : fmt(vals[i])}</span>
+      </div>`).join("");
+    requestAnimationFrame(() => el.querySelectorAll(".fill").forEach((f) => (f.style.width = f.dataset.w + "%")));
+  }
+  function renderTelemetry() {
+    const any = state.lanes.some((l) => l.status === "done");
+    $("#telemetryWrap").hidden = !any;
+    if (!any) return;
+    bars($("#chartTtft"), (l) => l.ttft, (v) => fmtS(v) + "s", true);
+    bars($("#chartTotal"), (l) => l.total, (v) => fmtS(v) + "s", true);
+    bars($("#chartTps"), tps, (v) => v.toFixed(1), false);
+  }
+
+  // ---------- judge ----------
+  async function runJudge() {
+    const jm = $("#judgeModel").value.trim();
+    if (!jm) { toast("Pick a judge model"); return; }
+    const wrap = $("#judgeWrap"), panel = $("#judgePanel");
+    wrap.hidden = false;
+    panel.innerHTML = `<div class="label">⚖ ${esc(jm)} is deliberating<span class="cursor" style="--accent:var(--amber)"></span></div>`;
+    const entries = state.lanes.map((l, i) => ({ i, l })).filter(({ l }) => l.status === "done" && l.text);
+    const prompt = `You are an impartial expert judge comparing anonymous AI responses to the same user prompt.
+
+USER PROMPT:
+"""${state.run.prompt}"""
+
+${entries.map(({ i, l }) => `RESPONSE ${letter(i)}:\n"""${l.text.slice(0, 12000)}"""`).join("\n\n")}
+
+Score each response from 1-10 for accuracy, helpfulness, and clarity. Respond with ONLY a JSON object, no prose, in this exact shape:
+{"scores":[{"id":"A","score":8,"reason":"one sentence"}],"winner":"A","summary":"one or two sentences"}`;
+    state.judgeCtrl = new AbortController();
+    try {
+      const res = await fetch(`${API}/chat/completions`, {
+        method: "POST", signal: state.judgeCtrl.signal,
+        headers: { Authorization: `Bearer ${state.key}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ model: fullId(jm), messages: [{ role: "user", content: prompt }], temperature: 0, max_tokens: 2048 }),
+      });
+      const j = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(`HTTP ${res.status} — ${j.error?.message || j.message || "request failed"}`);
+      const content = splitThink(j.choices?.[0]?.message?.content || "").content;
+      const m = content.match(/\{[\s\S]*\}/);
+      if (!m) throw new Error("Judge didn't return JSON:\n" + content.slice(0, 400));
+      const v = JSON.parse(m[0]);
+      state.run.judge = { model: jm, ...v };
+      renderJudge(state.run.judge);
+      saveRun();
+    } catch (e) {
+      panel.innerHTML = `<div class="err">Judge failed: ${esc(e.name === "AbortError" ? "stopped" : e.message)}</div>`;
+    } finally { state.judgeCtrl = null; }
+  }
+  function renderJudge(v) {
+    const wrap = $("#judgeWrap"), panel = $("#judgePanel");
+    if (!v) { wrap.hidden = true; return; }
+    wrap.hidden = false;
+    const wi = typeof v.winner === "string" ? v.winner.trim().toUpperCase().charCodeAt(0) - 65 : -1;
+    panel.innerHTML = `
+      <div class="label">⚖ Judged by ${esc(v.model)}</div>
+      <div class="verdict">${wi >= 0 && state.lanes[wi] ? `<b style="color:${ACCENTS[wi % 4]}">${letter(wi)} · ${esc(state.lanes[wi].model)}</b> wins. ` : ""}${esc(v.summary || "")}</div>
+      <div class="score-grid">${(v.scores || []).map((s) => {
+        const i = String(s.id || "").toUpperCase().charCodeAt(0) - 65;
+        return `<div class="score" style="--c:${ACCENTS[(i >= 0 ? i : 0) % 4]}"><div class="top"><span>${esc(s.id)} · ${esc(state.lanes[i]?.model || "")}</span><b>${esc(s.score)}<small class="muted">/10</small></b></div><p>${esc(s.reason || "")}</p></div>`;
+      }).join("")}</div>`;
+    updateBadges(wi);
+  }
+
+  // ---------- voting, stats, history ----------
+  function vote(lane) {
+    if (!state.run) return;
+    const i = state.lanes.indexOf(lane);
+    const stats = store.get(LS.stats, {});
+    const prev = state.run.winner;
+    if (prev != null && state.run.lanes[prev]) { const pm = state.run.lanes[prev].model; if (stats[pm]) stats[pm].wins = Math.max(0, (stats[pm].wins || 0) - 1); }
+    if (prev === i) state.run.winner = null;
+    else {
+      state.run.winner = i;
+      const m = state.run.lanes[i].model;
+      stats[m] = stats[m] || { runs: 0, wins: 0, tps: 0, ttft: 0, n: 0 };
+      stats[m].wins++;
+      toast(`♛ ${letter(i)} · ${m} takes the round`);
+    }
+    store.set(LS.stats, stats);
+    saveRun(); paintVotes();
+  }
+  function recordStats(lanes) {
+    const stats = store.get(LS.stats, {});
+    lanes.forEach((l) => {
+      if (l.status !== "done") return;
+      const s = (stats[l.model] = stats[l.model] || { runs: 0, wins: 0, tps: 0, ttft: 0, n: 0 });
+      s.runs++;
+      const t = tps(l);
+      if (t != null && l.ttft != null) { s.tps += t; s.ttft += l.ttft; s.n++; }
+    });
+    store.set(LS.stats, stats);
+  }
+  function saveRun() {
+    if (!state.run) return;
+    const h = store.get(LS.history, []).filter((r) => r.id !== state.run.id);
+    h.unshift(state.run);
+    store.set(LS.history, h.slice(0, 60));
+  }
+  function loadRun(r) {
+    state.run = r;
+    $("#prompt").value = r.prompt; $("#system").value = r.system || ""; updateSysBadge();
+    if (r.params) {
+      $("#temperature").value = r.params.temperature; $("#topP").value = r.params.top_p; $("#maxTokens").value = r.params.max_tokens; syncParams();
+    }
+    state.lanes = r.lanes.map((s) => Object.assign(newLane(s.model), s, { status: s.status || (s.error ? "error" : "done") }));
+    renderLanes(); updateBadges(); renderTelemetry(); paintVotes();
+    renderJudge(r.judge);
+    if (r.judge) { const wi = String(r.judge.winner || "").toUpperCase().charCodeAt(0) - 65; updateBadges(wi); }
+    $("#exportMd").disabled = $("#exportJson").disabled = false;
+    closeAll();
+  }
+  function renderHistory() {
+    const h = store.get(LS.history, []);
+    const body = $("#historyList");
+    if (!h.length) { body.innerHTML = `<div class="empty">No runs yet.<br/>Ignite a prompt to log it here.</div>`; return; }
+    body.innerHTML = h.map((r, idx) => `
+      <div class="hist-item" data-i="${idx}">
+        <div class="p">${esc(r.prompt)}</div>
+        <div class="m"><span>${new Date(r.ts).toLocaleString()}</span>${r.lanes.map((l, i) => `<span style="color:${ACCENTS[i % 4]}">${r.winner === i ? "♛ " : ""}${esc(l.model)}</span>`).join("")}</div>
+      </div>`).join("");
+    body.querySelectorAll(".hist-item").forEach((el) => (el.onclick = () => loadRun(h[+el.dataset.i])));
+  }
+  function renderLeaderboard() {
+    const stats = store.get(LS.stats, {});
+    const rows = Object.entries(stats).filter(([, s]) => s.runs || s.wins)
+      .sort((a, b) => b[1].wins - a[1].wins || (b[1].n ? b[1].tps / b[1].n : 0) - (a[1].n ? a[1].tps / a[1].n : 0));
+    const body = $("#leaderBody");
+    if (!rows.length) { body.innerHTML = `<div class="empty">No data yet.<br/>Run comparisons and pick winners to build your leaderboard.</div>`; return; }
+    body.innerHTML = `<table class="lb-table"><thead><tr><th>#</th><th>Model</th><th style="text-align:right">Wins</th><th style="text-align:right">Runs</th><th style="text-align:right">Avg tok/s</th><th style="text-align:right">Avg TTFT</th></tr></thead><tbody>
+      ${rows.map(([m, s], i) => `<tr><td>${i + 1}</td><td>${esc(m)}</td><td class="n">${s.wins}</td><td class="n">${s.runs}</td><td class="n">${s.n ? (s.tps / s.n).toFixed(1) : "—"}</td><td class="n">${s.n ? fmtS(s.ttft / s.n) + "s" : "—"}</td></tr>`).join("")}
+    </tbody></table>`;
+  }
+
+  // ---------- export ----------
+  function download(name, text, type) {
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(new Blob([text], { type }));
+    a.download = name; a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  }
+  function exportMd() {
+    const r = state.run; if (!r) return;
+    let md = `# ModelForge run — ${new Date(r.ts).toLocaleString()}\n\n`;
+    md += `**Params:** temperature ${r.params.temperature}, top_p ${r.params.top_p}, max_tokens ${r.params.max_tokens}\n\n`;
+    if (r.system) md += `## System\n\n${r.system}\n\n`;
+    md += `## Prompt\n\n${r.prompt}\n\n`;
+    r.lanes.forEach((l, i) => {
+      const t = tps(l);
+      md += `## ${letter(i)} · ${l.model}${r.winner === i ? " ♛" : ""}\n\n`;
+      md += `TTFT ${fmtS(l.ttft)}s · total ${fmtS(l.total)}s · ${l.tokens ?? "—"} tokens · ${t ? t.toFixed(1) : "—"} tok/s\n\n`;
+      md += (l.error ? `> Error: ${l.error}\n\n` : "") + (l.text || "") + "\n\n";
+    });
+    if (r.judge) md += `## Judge (${r.judge.model})\n\nWinner: ${r.judge.winner}\n\n${r.judge.summary || ""}\n\n` + (r.judge.scores || []).map((s) => `- **${s.id}**: ${s.score}/10 — ${s.reason}`).join("\n") + "\n";
+    download(`modelforge-${r.id}.md`, md, "text/markdown");
+  }
+
+  // ---------- UI wiring ----------
+  const overlay = $("#overlay");
+  function closeAll() { document.querySelectorAll(".drawer.show, .modal.show").forEach((d) => d.classList.remove("show")); overlay.classList.remove("show"); }
+  function openDrawer(id) { closeAll(); $(id).classList.add("show"); overlay.classList.add("show"); }
+  function openKey() {
+    closeAll();
+    $("#keyInput").value = state.key; $("#keyMsg").textContent = "";
+    $("#keyModal").classList.add("show"); overlay.classList.add("show");
+    setTimeout(() => $("#keyInput").focus(), 50);
+  }
+  overlay.onclick = closeAll;
+  document.querySelectorAll("[data-close]").forEach((b) => (b.onclick = closeAll));
+  $("#keyPill").onclick = openKey;
+  $("#saveKey").onclick = () => { const k = $("#keyInput").value.trim(); if (k) connect(k, $("#rememberKey").checked); };
+  $("#keyInput").addEventListener("keydown", (e) => { if (e.key === "Enter") $("#saveKey").click(); });
+  $("#forgetKey").onclick = () => {
+    state.key = ""; state.modelsLoaded = false; state.models = FALLBACK_MODELS.slice();
+    localStorage.removeItem(LS.key); sessionStorage.removeItem(LS.key);
+    fillModelList(); updateKeyPill(); $("#keyInput").value = ""; $("#keyMsg").className = "msg"; $("#keyMsg").textContent = "Key forgotten.";
+  };
+  $("#openHistory").onclick = () => { renderHistory(); openDrawer("#historyDrawer"); };
+  $("#openLeaderboard").onclick = () => { renderLeaderboard(); openDrawer("#leaderDrawer"); };
+  $("#clearHistory").onclick = () => { if (confirm("Delete all run history?")) { store.set(LS.history, []); renderHistory(); } };
+  $("#resetStats").onclick = () => { if (confirm("Reset leaderboard stats?")) { store.set(LS.stats, {}); renderLeaderboard(); } };
+  $("#runBtn").onclick = () => runLanes(state.lanes);
+  $("#stopBtn").onclick = stopAll;
+  $("#exportMd").onclick = exportMd;
+  $("#exportJson").onclick = () => state.run && download(`modelforge-${state.run.id}.json`, JSON.stringify(state.run, null, 2), "application/json");
+  $("#clearBtn").onclick = () => {
+    if (state.running) return;
+    state.run = null; state.lanes.forEach(resetLane);
+    renderLanes(); $("#telemetryWrap").hidden = true; $("#judgeWrap").hidden = true;
+    $("#exportMd").disabled = $("#exportJson").disabled = true;
+  };
+  document.addEventListener("keydown", (e) => {
+    if ((e.ctrlKey || e.metaKey) && e.key === "Enter") { e.preventDefault(); runLanes(state.lanes); }
+    else if (e.key === "Escape") { if (state.running) stopAll(); else closeAll(); }
+  });
+
+  function syncParams() {
+    $("#tempVal").textContent = (+$("#temperature").value).toFixed(2);
+    $("#topPVal").textContent = (+$("#topP").value).toFixed(2);
+    $("#maxTokVal").textContent = $("#maxTokens").value;
+    store.set(LS.params, { ...getParams(), system: $("#system").value });
+  }
+  ["temperature", "topP", "maxTokens"].forEach((id) => $("#" + id).addEventListener("input", syncParams));
+  function updateSysBadge() { const s = $("#system").value.trim(); $("#sysBadge").textContent = s ? `· ${s.length} chars` : ""; }
+  $("#system").addEventListener("input", () => { updateSysBadge(); syncParams(); });
+  $("#judgeOn").addEventListener("change", () => {
+    $("#judgeModel").hidden = !$("#judgeOn").checked;
+    store.set(LS.judge, { on: $("#judgeOn").checked, model: $("#judgeModel").value });
+  });
+  $("#judgeModel").addEventListener("change", () => store.set(LS.judge, { on: $("#judgeOn").checked, model: $("#judgeModel").value.trim() }));
+  $("#presets").innerHTML = PRESETS.map(([n], i) => `<button class="chip" data-i="${i}">${esc(n)}</button>`).join("");
+  $("#presets").querySelectorAll(".chip").forEach((c) => (c.onclick = () => { $("#prompt").value = PRESETS[+c.dataset.i][1]; $("#prompt").focus(); }));
+
+  // ---------- init ----------
+  const p = store.get(LS.params, null);
+  if (p) {
+    $("#temperature").value = p.temperature ?? 0.7; $("#topP").value = p.top_p ?? 1; $("#maxTokens").value = p.max_tokens ?? 1024;
+    $("#system").value = p.system || "";
+  }
+  syncParams(); updateSysBadge();
+  const jd = store.get(LS.judge, { on: false, model: "gpt-oss-120b" });
+  $("#judgeOn").checked = !!jd.on; $("#judgeModel").value = jd.model || "gpt-oss-120b"; $("#judgeModel").hidden = !jd.on;
+  const savedLanes = store.get(LS.lanes, null);
+  state.lanes = (Array.isArray(savedLanes) && savedLanes.length >= 2 ? savedLanes.slice(0, MAX_LANES) : ["gpt-oss-120b", "deepseek-v3p1"]).map(newLane);
+  fillModelList(); renderLanes(); updateKeyPill();
+  if (state.key) {
+    loadModels(state.key).then((m) => { if (m.length) { state.models = m; state.modelsLoaded = true; fillModelList(); } updateKeyPill(); })
+      .catch(() => { updateKeyPill(); toast("Saved key couldn't load models — check it"); });
+  } else {
+    setTimeout(openKey, 400);
+  }
+})();
+</script>
+</body>
+</html>
